@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Battleships</title>
+    <style type="text/css">
+    td {
+        border: 1px solid black;
+    }
+    </style>
+</head>
+<body>
+<div id="self">
+    <h2>Your fleet</h2>
+    <table id="self.fleet">
+    </table>
+</div>
+<div id="enemy">
+    <h2>Enemy fleet</h2>
+    <table id="enemy.fleet">
+    </table>
+</div>
+<script type="text/javascript">
+function xhr (type, path, data, onready) {
+    if (!onready) {
+        onready = function(){};
+    }
+    var req = new XMLHttpRequest();
+    req.onreadystatechange = function () {
+        if (req.readyState == 4 && req.status == 200) {
+            onready(req.responseText);
+        }
+    }
+    req.open(type, path, true);
+    req.send(data);
+}
+
+function generate_fleet_table (json) {
+    var ret = '';
+    for (var y = 0; y < 10; y++) {
+        ret += '<tr>';
+        for (var x = 0; x < 10; x++) {
+            ret += '<td>';
+            var square = json[y][x];
+            ret += '<span class="' + square.cls + '">' + square.txt + '</span>';
+            ret += '</td>';
+        }
+        ret += '</tr>';
+    }
+    return ret;
+}
+
+function update_game() {
+    xhr('GET', '/gamestatus?' + window.token, null, function (gamestate_json) {
+        gamestate_json = JSON.parse(gamestate_json);
+        var own_fleet = gamestate_json.own;
+        var enemy_fleet = gamestate_json.enemy;
+        var own_fleet_element = document.getElementById('self.fleet');
+        own_fleet_element.innerHTML = generate_fleet_table(own_fleet);
+        var enemy_fleet_element = document.getElementById('enemy.fleet');
+        enemy_fleet_element.innerHTML = generate_fleet_table(enemy_fleet);
+    });
+}
+
+function add_ship(coord, size, horizontal) {
+    if (horizontal != true) horizontal = false;
+    var postdata = JSON.stringify({'coord': coord,'size': size,'horizontal': horizontal});
+    xhr('POST', '/addship?' + window.token, postdata, function (asdf){
+        update_game();
+    });
+}
+
+window.addEventListener("load", function () {
+    xhr('GET', '/start', null, function (token_json) {
+        window.token = JSON.parse(token_json);
+    });
+}, false);
+</script>
+</body>
+</html>
