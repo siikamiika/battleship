@@ -90,7 +90,7 @@ class BattleshipGame(object):
         else:
             raise TooManyPlayers('Too many players')
 
-    def get_area(self, token, own=False):
+    def get_squares(self, token, own=False):
         player = self.get_player(token, own)
         output = []
         #rows
@@ -112,9 +112,6 @@ class BattleshipGame(object):
             output.append(row)
 
         return output
-
-    def enemy_area(self, area):
-        return [[{'txt': 'x' if sq.get('shot') else '?', 'cls': 'unknown'} for sq in row] for row in area]
 
     def get_player(self, token, me=False):
         def test(_token):
@@ -143,8 +140,8 @@ class BattleshipGame(object):
             else:
                 enemy = player
         return dict(
-            own=self.get_area(player_token, own=True),
-            enemy=self.get_area(player_token))
+            own=self.get_squares(player_token, own=True),
+            enemy=self.get_squares(player_token))
 
 class BattleshipServer(ThreadingMixIn, HTTPServer):
     def add_game(self, game):
