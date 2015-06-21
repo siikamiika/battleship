@@ -7,15 +7,24 @@
         border: 1px solid black;
     }
     .square {
+        box-sizing:border-box;
+        -moz-box-sizing:border-box;
+        -webkit-box-sizing:border-box;
         font-size: 20px;
         text-align: center;
-    }
-    .hit {
-        background-color: red;
+        background-color: blue;
+        min-height: 30px;
+        min-width: 30px;
+        max-height: 30px;
+        max-width: 30px;
     }
     .ship {
         font-weight: bold;
+        background-color: gray;
         border: 5px solid black;
+    }
+    .hit {
+        background-color: red;
     }
     </style>
 </head>
@@ -50,9 +59,9 @@ function generate_fleet_table (json) {
     for (var y = 0; y < 10; y++) {
         ret += '<tr>';
         for (var x = 0; x < 10; x++) {
-            ret += '<td>';
             var square = json[y][x];
-            ret += '<span class="' + square.cls.join(' ') + '">' + square.txt + '</span>';
+            ret += '<td ';
+            ret += 'class="' + square.cls.join(' ') + '">' + square.txt;
             ret += '</td>';
         }
         ret += '</tr>';
