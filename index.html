@@ -40,6 +40,8 @@
     <table id="self.fleet">
     </table>
     <p id="self.turn"></p>
+    <p id="self.ships_left"></p>
+    <p id="self.ships_alive"></p>
 </div>
 <div id="enemy">
     <h2>Enemy fleet</h2>
@@ -108,6 +110,10 @@ function update_game() {
         else {
             own_turn_element.innerHTML = '';
         }
+        var ships_alive_element = document.getElementById('self.ships_alive');
+        ships_alive_element.innerHTML = JSON.stringify(gamestate_json.ships_alive);
+        var ships_left_element = document.getElementById('self.ships_left');
+        ships_left_element.innerHTML = JSON.stringify(gamestate_json.ships_left);
     });
 }
 

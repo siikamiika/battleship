@@ -173,7 +173,11 @@ class BattleshipGame(object):
         return dict(
             own=self.get_squares(player_token, True),
             enemy=self.get_squares(player_token, False),
-            turn=own.get('turn') or False)
+            turn=own.get('turn') or False,
+            ships_left=own.get('ships_left'),
+            ships_alive=[
+                dict(lives=s.lives, size=s.size)
+                for s in own.get('ships') if s.lives > 0])
 
 class BattleshipServer(ThreadingMixIn, HTTPServer):
     def add_game(self, game):
