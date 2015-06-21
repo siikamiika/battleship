@@ -145,9 +145,6 @@ class BattleshipGame(object):
         me = self.get_player(token, True)
         if enemy.get('turn'):
             raise NotYourTurn()
-        else:
-            enemy['turn'] = True
-            me['turn'] = False
         if (x, y) in enemy['hits']:
             raise AlreadyHit()
         else:
@@ -157,6 +154,8 @@ class BattleshipGame(object):
                     ship.hit(x, y)
                 except ShipDead:
                     pass
+            enemy['turn'] = True
+            me['turn'] = False
 
     def ready(self):
         for p in self.players:
