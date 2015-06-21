@@ -26,14 +26,20 @@
         background-color: red;
         color: yellow;
     }
+    #self {
+        float: left;
+    }
+    #enemy {
+        float: right;
+    }
     </style>
 </head>
 <body>
 <div id="self">
     <h2>Your fleet</h2>
-    <p id="self.turn"></p>
     <table id="self.fleet">
     </table>
+    <p id="self.turn"></p>
 </div>
 <div id="enemy">
     <h2>Enemy fleet</h2>
@@ -55,19 +61,37 @@ function xhr (type, path, data, onready) {
     req.send(data);
 }
 
-function generate_fleet_table (json) {
-    var ret = '';
-    for (var y = 0; y < 10; y++) {
-        ret += '<tr>';
-        for (var x = 0; x < 10; x++) {
-            var square = json[y][x];
-            ret += '<td ';
-            ret += 'class="' + square.cls.join(' ') + '">' + square.txt;
-            ret += '</td>';
-        }
-        ret += '</tr>';
+function activate_button(button, x, y) {
+    button.onclick = function (e) {
+        hit(x, y);
     }
-    return ret;
+}
+
+function generate_fleet_table (id, enemy) {
+    var el = document.getElementById(id);
+    el.innerHTML = '';
+    for (var y = 0; y < 10; y++) {
+        var tr = document.createElement('tr');
+        for (var x = 0; x < 10; x++) {
+            var td = document.createElement('td');
+            if (enemy) {
+                activate_button(td, x, y);
+            }
+            tr.appendChild(td);
+        }
+        el.appendChild(tr);
+    }
+}
+
+function update_fleet_table(id, json) {
+    var el = document.getElementById(id);
+    for (var y = 0, tr; tr = el.rows[y]; y++) {
+        for (var x = 0, td; td = tr.cells[x]; x++) {
+            var square = json[y][x];
+            td.innerHTML = square.txt;
+            td.className = square.cls.join(' ');
+        }
+    }
 }
 
 function update_game() {
@@ -75,11 +99,9 @@ function update_game() {
         gamestate_json = JSON.parse(gamestate_json);
         var own_fleet = gamestate_json.own;
         var enemy_fleet = gamestate_json.enemy;
-        var own_fleet_element = document.getElementById('self.fleet');
-        var enemy_fleet_element = document.getElementById('enemy.fleet');
+        update_fleet_table('self.fleet', own_fleet);
+        update_fleet_table('enemy.fleet', enemy_fleet);;
         var own_turn_element = document.getElementById('self.turn');
-        own_fleet_element.innerHTML = generate_fleet_table(own_fleet);
-        enemy_fleet_element.innerHTML = generate_fleet_table(enemy_fleet);
         if (gamestate_json.turn) {
             own_turn_element.innerHTML = 'It\'s your turn!';
         }
@@ -97,6 +119,15 @@ function add_ship(coord, size, horizontal) {
     });
 }
 
+function generate_ships () {
+    add_ship([0, 0], 1);
+    add_ship([1, 0], 2);
+    add_ship([2, 0], 3);
+    add_ship([3, 0], 3);
+    add_ship([4, 0], 4);
+    add_ship([5, 0], 5);
+}
+
 function hit(x, y) {
     var postdata = JSON.stringify({'x': x, 'y': y});
     xhr('POST', '/hit?' + window.token, postdata, function (asdf) {
@@ -107,8 +138,11 @@ function hit(x, y) {
 window.addEventListener("load", function () {
     xhr('GET', '/start', null, function (token_json) {
         window.token = JSON.parse(token_json);
+        generate_fleet_table('self.fleet');
+        generate_fleet_table('enemy.fleet', true);
+        generate_ships();
+        window.setInterval(function () {update_game()}, 1000);
     });
-    window.setInterval(function () {update_game()}, 1000);
 }, false);
 </script>
 </body>

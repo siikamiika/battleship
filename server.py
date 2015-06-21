@@ -145,7 +145,7 @@ class BattleshipGame(object):
         me = self.get_player(token, True)
         if enemy.get('turn'):
             raise NotYourTurn()
-        if (x, y) in enemy['hits']:
+        elif (x, y) in enemy['hits']:
             raise AlreadyHit()
         else:
             enemy['hits'].append((x, y))
@@ -159,7 +159,6 @@ class BattleshipGame(object):
 
     def ready(self):
         for p in self.players:
-            print(p)
             not_ready = [v for v in p['ships_left'].values() if v != 0]
             if not_ready:
                 return False
@@ -194,6 +193,8 @@ class BattleshipRequestHandler(BaseHTTPRequestHandler):
                 statuscode=args[2],
                 data=self.POST_data.decode(),
                 ))
+        elif self.path.startswith('/gamestatus'):
+            pass
         else:
             BaseHTTPRequestHandler.log_message(self, *args, **kwargs)
 
