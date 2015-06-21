@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Battleships</title>
+    <title>Battleship</title>
     <style type="text/css">
     td {
         border: 1px solid black;
@@ -32,6 +32,9 @@
     #enemy {
         float: right;
     }
+    .hide {
+        color: transparent;
+    }
     </style>
 </head>
 <body>
@@ -39,7 +42,7 @@
     <h2>Your fleet</h2>
     <table id="self.fleet">
     </table>
-    <p id="self.turn"></p>
+    <p class="hide" id="self.turn">It's your turn</p>
     <p id="self.ships_left"></p>
     <p id="self.ships_alive"></p>
 </div>
@@ -47,6 +50,9 @@
     <h2>Enemy fleet</h2>
     <table id="enemy.fleet">
     </table>
+    <p class="hide" id="enemy.turn">It's enemy turn</p>
+    <p id="enemy.ships_left"></p>
+    <p id="enemy.ships_alive"></p>
 </div>
 <script type="text/javascript">
 function xhr (type, path, data, onready) {
@@ -85,8 +91,8 @@ function generate_fleet_table (id, enemy) {
     }
 }
 
-function update_fleet_table(id, json) {
-    var el = document.getElementById(id);
+function update_fleet_table(player, json) {
+    var el = document.getElementById(player + '.fleet');
     for (var y = 0, tr; tr = el.rows[y]; y++) {
         for (var x = 0, td; td = tr.cells[x]; x++) {
             var square = json[y][x];
@@ -96,24 +102,36 @@ function update_fleet_table(id, json) {
     }
 }
 
+function update_game_status(player, json) {
+    var turn_el = document.getElementById(player + '.turn');
+    var ships_left_el = document.getElementById(player + '.ships_left');
+    var ships_alive_el = document.getElementById(player + '.ships_alive');
+    if (!json.turn) {
+        turn_el.className = 'hide';
+    }
+    else {
+        turn_el.className = '';
+    }
+    ships_left_el.innerHTML = JSON.stringify(json.ships_left);
+    ships_alive_el.innerHTML = JSON.stringify(json.ships_alive);
+    if (json.winner) {
+        window.clearInterval(window.updater_id);
+        if (player == 'self') {
+            alert('olet viineri');
+        }
+        else if (player == 'enemy') {
+            alert('olet luuseri');
+        }
+    }
+}
+
 function update_game() {
     xhr('GET', '/gamestatus?' + window.token, null, function (gamestate_json) {
         gamestate_json = JSON.parse(gamestate_json);
-        var own_fleet = gamestate_json.own;
-        var enemy_fleet = gamestate_json.enemy;
-        update_fleet_table('self.fleet', own_fleet);
-        update_fleet_table('enemy.fleet', enemy_fleet);;
-        var own_turn_element = document.getElementById('self.turn');
-        if (gamestate_json.turn) {
-            own_turn_element.innerHTML = 'It\'s your turn!';
-        }
-        else {
-            own_turn_element.innerHTML = '';
-        }
-        var ships_alive_element = document.getElementById('self.ships_alive');
-        ships_alive_element.innerHTML = JSON.stringify(gamestate_json.ships_alive);
-        var ships_left_element = document.getElementById('self.ships_left');
-        ships_left_element.innerHTML = JSON.stringify(gamestate_json.ships_left);
+        update_fleet_table('self', gamestate_json.own.squares);
+        update_fleet_table('enemy', gamestate_json.enemy.squares);
+        update_game_status('self', gamestate_json.own);
+        update_game_status('enemy', gamestate_json.enemy);
     });
 }
 
@@ -147,7 +165,9 @@ window.addEventListener("load", function () {
         generate_fleet_table('self.fleet');
         generate_fleet_table('enemy.fleet', true);
         generate_ships();
-        window.setInterval(function () {update_game()}, 1000);
+        window.updater_id = window.setInterval(function () {
+            update_game();
+        }, 1000);
     });
 }, false);
 </script>

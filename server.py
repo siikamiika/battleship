@@ -39,6 +39,9 @@ class PlayersNotReadyYet(Exception):
 class NotYourTurn(Exception):
     pass
 
+class GameAlreadyOver(Exception):
+    pass
+
 class Ship(object):
 
     def __init__(self, coord, size, horizontal):
@@ -91,6 +94,7 @@ class BattleshipGame(object):
         token = time.time()
         if len(self.players) < 2:
             self.players.append(dict(
+                winner=False,
                 ships=[],
                 ships_left=dict(self._ships_left),
                 hits=[],
@@ -99,8 +103,7 @@ class BattleshipGame(object):
         else:
             raise TooManyPlayers('Too many players')
 
-    def get_squares(self, token, own):
-        player = self.get_player(token, own)
+    def get_squares(self, player, own):
         output = []
         #rows
         for y in range(10):
@@ -138,11 +141,20 @@ class BattleshipGame(object):
         player['ships'].append(ship)
         player['ships_left'][size] -= 1
 
+    def winner(self, player):
+        if player.get('winner'):
+            return True
+        else:
+            return False
+
     def hit(self, token, x=None, y=None):
         if not self.ready():
             raise PlayersNotReadyYet()
         enemy = self.get_player(token, False)
         me = self.get_player(token, True)
+        for p in [me, enemy]:
+            if self.winner(p):
+                raise GameAlreadyOver()
         if enemy.get('turn'):
             raise NotYourTurn()
         elif (x, y) in enemy['hits']:
@@ -154,8 +166,12 @@ class BattleshipGame(object):
                     ship.hit(x, y)
                 except ShipDead:
                     pass
-            enemy['turn'] = True
-            me['turn'] = False
+            if not [s for s in enemy['ships'] if s.lives]:
+                me['winner'] = True
+                me['turn'] = False
+            else:
+                enemy['turn'] = True
+                me['turn'] = False
 
     def ready(self):
         for p in self.players:
@@ -171,13 +187,27 @@ class BattleshipGame(object):
             else:
                 enemy = player
         return dict(
-            own=self.get_squares(player_token, True),
-            enemy=self.get_squares(player_token, False),
-            turn=own.get('turn') or False,
-            ships_left=own.get('ships_left'),
-            ships_alive=[
-                dict(lives=s.lives, size=s.size)
-                for s in own.get('ships') if s.lives > 0])
+            own=dict(
+                squares=self.get_squares(own, True),
+                turn=own.get('turn') or False,
+                ships_left=own.get('ships_left'),
+                ships_alive=[
+                    dict(lives=s.lives, size=s.size)
+                    for s in own.get('ships') if s.lives > 0
+                ],
+                winner=self.winner(own),
+                ),
+            enemy=dict(
+                squares=self.get_squares(enemy, False),
+                turn=enemy.get('turn') or False,
+                ships_left=enemy.get('ships_left'),
+                ships_alive=[
+                    dict(lives=s.lives, size=s.size)
+                    for s in enemy.get('ships') if s.lives > 0
+                ],
+                winner=self.winner(enemy),
+                ),
+                )
 
 class BattleshipServer(ThreadingMixIn, HTTPServer):
     def add_game(self, game):
