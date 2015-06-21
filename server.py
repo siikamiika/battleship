@@ -42,6 +42,9 @@ class NotYourTurn(Exception):
 class GameAlreadyOver(Exception):
     pass
 
+class OutOfBounds(Exception):
+    pass
+
 class Ship(object):
 
     def __init__(self, coord, size, horizontal):
@@ -132,12 +135,16 @@ class BattleshipGame(object):
 
     def add_ship(self, token, coord=None, size=None, horizontal=False):
         player = self.get_player(token, True)
-        if player['ships_left'][size] <= 0:
+        if (player['ships_left'].get(size) or 0) <= 0:
             raise OutOfShips('No more ships of size {}'.format(size))
         ship = Ship(coord, size, horizontal)
+        for p in ship.points():
+            for c in p:
+                if not 0 <= c <= 9:
+                    raise OutOfBounds('Out of bounds {}'.format(p))
         for sh in player['ships']:
             if not sh.allowed(ship):
-                raise ShipOverlaps()
+                raise ShipOverlaps('Can\'t put a ship here')
         player['ships'].append(ship)
         player['ships_left'][size] -= 1
 
@@ -149,16 +156,19 @@ class BattleshipGame(object):
 
     def hit(self, token, x=None, y=None):
         if not self.ready():
-            raise PlayersNotReadyYet()
+            raise PlayersNotReadyYet('Players aren\'t ready yet')
+        for c in x, y:
+            if not 0 <= c <= 9:
+                raise OutOfBounds('{}'.fomat((x,y)))
         enemy = self.get_player(token, False)
         me = self.get_player(token, True)
         for p in [me, enemy]:
             if self.winner(p):
-                raise GameAlreadyOver()
+                raise GameAlreadyOver('Game already over')
         if enemy.get('turn'):
-            raise NotYourTurn()
+            raise NotYourTurn('Wait for your turn')
         elif (x, y) in enemy['hits']:
-            raise AlreadyHit()
+            raise AlreadyHit('{} already hit'.format((x, y)))
         else:
             enemy['hits'].append((x, y))
             for ship in enemy['ships']:
@@ -191,20 +201,16 @@ class BattleshipGame(object):
                 squares=self.get_squares(own, True),
                 turn=own.get('turn') or False,
                 ships_left=own.get('ships_left'),
-                ships_alive=[
-                    dict(lives=s.lives, size=s.size)
-                    for s in own.get('ships') if s.lives > 0
-                ],
+                ships=[dict(lives=s.lives, size=s.size)
+                    for s in own.get('ships')],
                 winner=self.winner(own),
                 ),
             enemy=dict(
                 squares=self.get_squares(enemy, False),
                 turn=enemy.get('turn') or False,
                 ships_left=enemy.get('ships_left'),
-                ships_alive=[
-                    dict(size=s.size)
-                    for s in enemy.get('ships') if s.lives > 0
-                ],
+                ships=[dict(lives=None if s.lives else 0, size=s.size)
+                    for s in enemy.get('ships')],
                 winner=self.winner(enemy),
                 ),
                 )

@@ -3,10 +3,18 @@
 <head>
     <title>Battleship</title>
     <style type="text/css">
+    body {
+        font-size: 15px;
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
     .square {
         box-sizing:border-box;
         -moz-box-sizing:border-box;
         -webkit-box-sizing:border-box;
+        cursor: pointer;
         font-size: 20px;
         text-align: center;
         background-color: blue;
@@ -32,9 +40,22 @@
     .hide {
         color: transparent;
     }
+    .hitpoints {
+        height: 15px;
+        width: 15px;
+        display: inline-block;
+        text-align: center;
+    }
+    .green {
+        background-color: green;
+    }
+    .red {
+        background-color: red;
+    }
     </style>
 </head>
 <body>
+<p>Last message: <span id="message"></span></p>
 <div id="self">
     <h2>Your fleet</h2>
     <table id="self.fleet">
@@ -42,12 +63,12 @@
     <p class="hide" id="self.turn">It's your turn</p>
     <table>
         <tr>
-            <th>Ships left to place</th>
-            <th>Ships alive</th>
+            <th>On the way</th>
+            <th>Ships</th>
         </tr>
         <tr>
             <td id="self.ships_left"></td>
-            <td id="self.ships_alive"></td>
+            <td id="self.ships"></td>
         </tr>
     </table>
 </div>
@@ -58,33 +79,71 @@
     <p class="hide" id="enemy.turn">It's enemy turn</p>
     <table>
         <tr>
-            <th>Ships left to place</th>
-            <th>Ships alive</th>
+            <th>On the way</th>
+            <th>Ships</th>
         </tr>
         <tr>
             <td id="enemy.ships_left"></td>
-            <td id="enemy.ships_alive"></td>
+            <td id="enemy.ships"></td>
         </tr>
     </table>
 </div>
 <script type="text/javascript">
-function xhr (type, path, data, onready) {
+function xhr (type, path, data, onready, onerror) {
     if (!onready) {
         onready = function(){};
+    }
+    if (!onerror) {
+        onerror = function(msg){
+            show_message(msg);
+        }
     }
     var req = new XMLHttpRequest();
     req.onreadystatechange = function () {
         if (req.readyState == 4 && req.status == 200) {
             onready(req.responseText);
         }
+        else if (req.readyState == 4 && req.status == 404) {
+            onerror(req.responseText);
+        }
     }
     req.open(type, path, true);
     req.send(data);
 }
 
-function activate_button(button, x, y) {
+function show_message (msg) {
+    document.getElementById('message').innerHTML = msg;
+}
+
+function activate_attack_button(button, x, y) {
     button.onclick = function (e) {
         hit(x, y);
+    }
+}
+
+function activate_positioning_button(button, x, y) {
+    button.onclick = function (e) {
+        if (window.selecting_endpoint) {
+            var len_x = x - window.starting_coord[0];
+            var len_y = y - window.starting_coord[1];
+            if (!len_x) {
+                add_ship(window.starting_coord, len_y + 1, false);
+                show_message('');
+            }
+            else if (!len_y) {
+                add_ship(window.starting_coord, len_x + 1, true);
+                show_message('');
+            }
+            else {
+                show_message('Invalid ship position (' + window.starting_coord + ' to ' + [x, y] + ')');
+            }
+            window.selecting_endpoint = false;
+        }
+        else {
+            window.starting_coord = [x, y];
+            show_message('Select endpoint');
+            window.selecting_endpoint = true;
+        }
     }
 }
 
@@ -96,7 +155,10 @@ function generate_fleet_table (id, enemy) {
         for (var x = 0; x < 10; x++) {
             var td = document.createElement('td');
             if (enemy) {
-                activate_button(td, x, y);
+                activate_attack_button(td, x, y);
+            }
+            else {
+                activate_positioning_button(td, x, y);
             }
             tr.appendChild(td);
         }
@@ -119,21 +181,32 @@ function repeat_string(str, times) {
     return Array(times + 1).join(str);
 }
 
-function ships_left_as_html(json) {
-    var output = '';
-    return output;
+function ship_to_html(size, lives) {
+    return repeat_string('<span class="hitpoints green">O</span>', lives) +
+        repeat_string('<span class="hitpoints red">X</span>', size - lives);
 }
 
-function ships_alive_as_html(json) {
+function ships_left_as_html(json) {
+    var output = '';
+    for (var i = 0; i < 10; i++) {
+        if (json[i]) {
+            output += '<br>';
+            output += ship_to_html(i, i) + json[i];
+        }
+    }
+    return output.slice(4);
+}
+
+function ships_as_html(json) {
     var output = '';
     for (var i = 0; i < json.length; i++) {
         output += '<br>';
         var ship = json[i];
-        if (ship.lives) {
-            output += repeat_string('O', ship.lives) + repeat_string('X', ship.size - ship.lives);
+        if (ship.lives === null) {
+            output += ship_to_html(ship.size, ship.size);
         }
         else {
-            output += repeat_string('O', ship.size);
+            output += ship_to_html(ship.size, ship.lives);
         }
     }
     return output.slice(4);
@@ -142,7 +215,7 @@ function ships_alive_as_html(json) {
 function update_game_status(player, json) {
     var turn_el = document.getElementById(player + '.turn');
     var ships_left_el = document.getElementById(player + '.ships_left');
-    var ships_alive_el = document.getElementById(player + '.ships_alive');
+    var ships_el = document.getElementById(player + '.ships');
     if (!json.turn) {
         turn_el.className = 'hide';
     }
@@ -150,7 +223,7 @@ function update_game_status(player, json) {
         turn_el.className = '';
     }
     ships_left_el.innerHTML = ships_left_as_html(json.ships_left);
-    ships_alive_el.innerHTML = ships_alive_as_html(json.ships_alive);
+    ships_el.innerHTML = ships_as_html(json.ships);
     if (json.winner) {
         window.clearInterval(window.updater_id);
         if (player == 'self') {
@@ -180,15 +253,6 @@ function add_ship(coord, size, horizontal) {
     });
 }
 
-function generate_ships () {
-    add_ship([0, 0], 1);
-    add_ship([1, 0], 2);
-    add_ship([2, 0], 3);
-    add_ship([3, 0], 3);
-    add_ship([4, 0], 4);
-    add_ship([5, 0], 5);
-}
-
 function hit(x, y) {
     var postdata = JSON.stringify({'x': x, 'y': y});
     xhr('POST', '/hit?' + window.token, postdata, function (asdf) {
@@ -201,7 +265,6 @@ window.addEventListener("load", function () {
         window.token = JSON.parse(token_json);
         generate_fleet_table('self.fleet');
         generate_fleet_table('enemy.fleet', true);
-        generate_ships();
         window.updater_id = window.setInterval(function () {
             update_game();
         }, 1000);
