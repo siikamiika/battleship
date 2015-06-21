@@ -30,6 +30,9 @@ class OutOfShips(Exception):
 class ShipOverlaps(Exception):
     pass
 
+class AlreadyHit(Exception):
+    pass
+
 class Ship(object):
 
     def __init__(self, coord, size, horizontal):
@@ -113,7 +116,7 @@ class BattleshipGame(object):
 
         return output
 
-    def get_player(self, token, me=False):
+    def get_player(self, token, me):
         def test(_token):
             return me == (_token == token)
         return next(p for p in self.players if test(p['token']))
@@ -128,6 +131,19 @@ class BattleshipGame(object):
                 raise ShipOverlaps()
         player['ships'].append(ship)
         player['ships_left'][size] -= 1
+
+    def hit(self, token, x=None, y=None):
+        player = self.get_player(token, False)
+        if (x, y) in player['hits']:
+            raise AlreadyHit()
+        else:
+            player['hits'].append((x, y))
+            for ship in player['ships']:
+                try:
+                    ship.hit(x, y)
+                except ShipDead:
+                    pass
+
 
     def ready(self, token):
         player = self.get_player(token, True)
@@ -217,6 +233,10 @@ class BattleshipRequestHandler(BaseHTTPRequestHandler):
             if self.url_parsed.path == '/addship':
                 token = float(self.url_parsed.query)
                 self.server.game.add_ship(token, **json.loads(self.POST_data.decode()))
+                self.respond_ok()
+            elif self.url_parsed.path == '/hit':
+                token = float(self.url_parsed.query)
+                self.server.game.hit(token, **json.loads(self.POST_data.decode()))
                 self.respond_ok()
         except Exception as e:
             traceback.print_exc()

@@ -6,6 +6,17 @@
     td {
         border: 1px solid black;
     }
+    .square {
+        font-size: 20px;
+        text-align: center;
+    }
+    .hit {
+        background-color: red;
+    }
+    .ship {
+        font-weight: bold;
+        border: 5px solid black;
+    }
     </style>
 </head>
 <body>
@@ -41,7 +52,7 @@ function generate_fleet_table (json) {
         for (var x = 0; x < 10; x++) {
             ret += '<td>';
             var square = json[y][x];
-            ret += '<span class="' + square.cls + '">' + square.txt + '</span>';
+            ret += '<span class="' + square.cls.join(' ') + '">' + square.txt + '</span>';
             ret += '</td>';
         }
         ret += '</tr>';
@@ -64,7 +75,14 @@ function update_game() {
 function add_ship(coord, size, horizontal) {
     if (horizontal != true) horizontal = false;
     var postdata = JSON.stringify({'coord': coord,'size': size,'horizontal': horizontal});
-    xhr('POST', '/addship?' + window.token, postdata, function (asdf){
+    xhr('POST', '/addship?' + window.token, postdata, function (asdf) {
+        update_game();
+    });
+}
+
+function hit(x, y) {
+    var postdata = JSON.stringify({'x': x, 'y': y});
+    xhr('POST', '/hit?' + window.token, postdata, function (asdf) {
         update_game();
     });
 }
