@@ -33,6 +33,9 @@ class ShipOverlaps(Exception):
 class AlreadyHit(Exception):
     pass
 
+class PlayersNotReadyYet(Exception):
+    pass
+
 class Ship(object):
 
     def __init__(self, coord, size, horizontal):
@@ -133,6 +136,8 @@ class BattleshipGame(object):
         player['ships_left'][size] -= 1
 
     def hit(self, token, x=None, y=None):
+        if not self.ready():
+            raise PlayersNotReadyYet()
         player = self.get_player(token, False)
         if (x, y) in player['hits']:
             raise AlreadyHit()
@@ -144,10 +149,13 @@ class BattleshipGame(object):
                 except ShipDead:
                     pass
 
-
-    def ready(self, token):
-        player = self.get_player(token, True)
-        return [v for v in player['ships_left'].values() if v != 0]
+    def ready(self):
+        for p in self.players:
+            print(p)
+            not_ready = [v for v in p['ships_left'].values() if v != 0]
+            if not_ready:
+                return False
+        return True
 
     def get_status(self, player_token):
         for player in self.players:
