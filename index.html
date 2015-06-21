@@ -31,6 +31,7 @@
 <body>
 <div id="self">
     <h2>Your fleet</h2>
+    <p id="self.turn"></p>
     <table id="self.fleet">
     </table>
 </div>
@@ -75,9 +76,16 @@ function update_game() {
         var own_fleet = gamestate_json.own;
         var enemy_fleet = gamestate_json.enemy;
         var own_fleet_element = document.getElementById('self.fleet');
-        own_fleet_element.innerHTML = generate_fleet_table(own_fleet);
         var enemy_fleet_element = document.getElementById('enemy.fleet');
+        var own_turn_element = document.getElementById('self.turn');
+        own_fleet_element.innerHTML = generate_fleet_table(own_fleet);
         enemy_fleet_element.innerHTML = generate_fleet_table(enemy_fleet);
+        if (gamestate_json.turn) {
+            own_turn_element.innerHTML = 'It\'s your turn!';
+        }
+        else {
+            own_turn_element.innerHTML = '';
+        }
     });
 }
 
@@ -100,6 +108,7 @@ window.addEventListener("load", function () {
     xhr('GET', '/start', null, function (token_json) {
         window.token = JSON.parse(token_json);
     });
+    window.setInterval(function () {update_game()}, 1000);
 }, false);
 </script>
 </body>

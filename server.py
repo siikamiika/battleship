@@ -173,7 +173,8 @@ class BattleshipGame(object):
                 enemy = player
         return dict(
             own=self.get_squares(player_token, True),
-            enemy=self.get_squares(player_token, False))
+            enemy=self.get_squares(player_token, False),
+            turn=own.get('turn') or False)
 
 class BattleshipServer(ThreadingMixIn, HTTPServer):
     def add_game(self, game):
