@@ -36,6 +36,9 @@ class AlreadyHit(Exception):
 class PlayersNotReadyYet(Exception):
     pass
 
+class NotYourTurn(Exception):
+    pass
+
 class Ship(object):
 
     def __init__(self, coord, size, horizontal):
@@ -96,7 +99,7 @@ class BattleshipGame(object):
         else:
             raise TooManyPlayers('Too many players')
 
-    def get_squares(self, token, own=False):
+    def get_squares(self, token, own):
         player = self.get_player(token, own)
         output = []
         #rows
@@ -138,12 +141,18 @@ class BattleshipGame(object):
     def hit(self, token, x=None, y=None):
         if not self.ready():
             raise PlayersNotReadyYet()
-        player = self.get_player(token, False)
-        if (x, y) in player['hits']:
+        enemy = self.get_player(token, False)
+        me = self.get_player(token, True)
+        if enemy.get('turn'):
+            raise NotYourTurn()
+        else:
+            enemy['turn'] = True
+            me['turn'] = False
+        if (x, y) in enemy['hits']:
             raise AlreadyHit()
         else:
-            player['hits'].append((x, y))
-            for ship in player['ships']:
+            enemy['hits'].append((x, y))
+            for ship in enemy['ships']:
                 try:
                     ship.hit(x, y)
                 except ShipDead:
@@ -164,8 +173,8 @@ class BattleshipGame(object):
             else:
                 enemy = player
         return dict(
-            own=self.get_squares(player_token, own=True),
-            enemy=self.get_squares(player_token))
+            own=self.get_squares(player_token, True),
+            enemy=self.get_squares(player_token, False))
 
 class BattleshipServer(ThreadingMixIn, HTTPServer):
     def add_game(self, game):
