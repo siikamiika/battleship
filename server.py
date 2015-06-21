@@ -103,12 +103,12 @@ class BattleshipGame(object):
             for x in range(10):
                 sq = {'txt': '?', 'cls': ['square']}
                 if (x, y) in player['hits']:
-                    sq['txt'] = 'x'
+                    sq['txt'] = 'X'
                     sq['cls'].append('hit')
                 for ship in player['ships']:
                     if ship._hit(x, y):
                         if own or ship.lives == 0:
-                            sq['txt'] = '='
+                            sq['txt'] = 'O'
                             sq['cls'].append('ship')
                             break
                 row.append(sq)
