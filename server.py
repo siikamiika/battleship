@@ -202,7 +202,7 @@ class BattleshipGame(object):
                 turn=enemy.get('turn') or False,
                 ships_left=enemy.get('ships_left'),
                 ships_alive=[
-                    dict(lives=s.lives, size=s.size)
+                    dict(size=s.size)
                     for s in enemy.get('ships') if s.lives > 0
                 ],
                 winner=self.winner(enemy),

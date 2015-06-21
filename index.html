@@ -3,9 +3,6 @@
 <head>
     <title>Battleship</title>
     <style type="text/css">
-    td {
-        border: 1px solid black;
-    }
     .square {
         box-sizing:border-box;
         -moz-box-sizing:border-box;
@@ -43,16 +40,32 @@
     <table id="self.fleet">
     </table>
     <p class="hide" id="self.turn">It's your turn</p>
-    <p id="self.ships_left"></p>
-    <p id="self.ships_alive"></p>
+    <table>
+        <tr>
+            <th>Ships left to place</th>
+            <th>Ships alive</th>
+        </tr>
+        <tr>
+            <td id="self.ships_left"></td>
+            <td id="self.ships_alive"></td>
+        </tr>
+    </table>
 </div>
 <div id="enemy">
     <h2>Enemy fleet</h2>
     <table id="enemy.fleet">
     </table>
     <p class="hide" id="enemy.turn">It's enemy turn</p>
-    <p id="enemy.ships_left"></p>
-    <p id="enemy.ships_alive"></p>
+    <table>
+        <tr>
+            <th>Ships left to place</th>
+            <th>Ships alive</th>
+        </tr>
+        <tr>
+            <td id="enemy.ships_left"></td>
+            <td id="enemy.ships_alive"></td>
+        </tr>
+    </table>
 </div>
 <script type="text/javascript">
 function xhr (type, path, data, onready) {
@@ -102,6 +115,30 @@ function update_fleet_table(player, json) {
     }
 }
 
+function repeat_string(str, times) {
+    return Array(times + 1).join(str);
+}
+
+function ships_left_as_html(json) {
+    var output = '';
+    return output;
+}
+
+function ships_alive_as_html(json) {
+    var output = '';
+    for (var i = 0; i < json.length; i++) {
+        output += '<br>';
+        var ship = json[i];
+        if (ship.lives) {
+            output += repeat_string('O', ship.lives) + repeat_string('X', ship.size - ship.lives);
+        }
+        else {
+            output += repeat_string('O', ship.size);
+        }
+    }
+    return output.slice(4);
+}
+
 function update_game_status(player, json) {
     var turn_el = document.getElementById(player + '.turn');
     var ships_left_el = document.getElementById(player + '.ships_left');
@@ -112,8 +149,8 @@ function update_game_status(player, json) {
     else {
         turn_el.className = '';
     }
-    ships_left_el.innerHTML = JSON.stringify(json.ships_left);
-    ships_alive_el.innerHTML = JSON.stringify(json.ships_alive);
+    ships_left_el.innerHTML = ships_left_as_html(json.ships_left);
+    ships_alive_el.innerHTML = ships_alive_as_html(json.ships_alive);
     if (json.winner) {
         window.clearInterval(window.updater_id);
         if (player == 'self') {
