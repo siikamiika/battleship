@@ -159,7 +159,7 @@ class BattleshipGame(object):
             raise PlayersNotReadyYet('Players aren\'t ready yet')
         for c in x, y:
             if not 0 <= c <= 9:
-                raise OutOfBounds('{}'.fomat((x,y)))
+                raise OutOfBounds('{}'.format((x,y)))
         enemy = self.get_player(token, False)
         me = self.get_player(token, True)
         for p in [me, enemy]:
