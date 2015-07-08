@@ -254,12 +254,16 @@ function update_game_status(player, json) {
     }
 }
 
-function respond_to_changed_squares(old_squares, new_squares) {
+function respond_to_changed_squares(os, ns) {
+    var old_squares = os.own.squares;
+    var new_squares = ns.own.squares;
     for (var y = 0; y < new_squares.length; y++) {
         for (var x = 0; x < new_squares[y].length; x++) {
             var new_cls = new_squares[y][x].cls;
             var old_cls = old_squares[y][x].cls;
-            if (new_cls.indexOf('dead') !== -1 && old_cls.indexOf('dead') === -1) {
+            if (ns.own.winner || ns.enemy.winner) {
+                return;
+            } else if (new_cls.indexOf('dead') !== -1 && old_cls.indexOf('dead') === -1) {
                 play_sound('kill');
                 return;
             } else if (new_cls.indexOf('hit') !== -1 && old_cls.indexOf('hit') === -1) {
@@ -280,7 +284,7 @@ function update_game() {
         if (!window.old_state) {
             window.old_state = game_state;
         }
-        respond_to_changed_squares(window.old_state.own.squares, game_state.own.squares);
+        respond_to_changed_squares(window.old_state, game_state);
         window.old_state = game_state;
         update_fleet_table('self', game_state.own.squares);
         update_fleet_table('enemy', game_state.enemy.squares);
