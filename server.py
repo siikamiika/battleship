@@ -12,6 +12,15 @@ import traceback
 
 script_path = Path(dirname(realpath(__file__)))
 
+def sound_paths():
+    base = 'static/sound/'
+    paths = dict()
+    for d in (script_path / base).iterdir():
+        paths[d.name] = dict(base=base + d.name, files=[])
+        for f in d.iterdir():
+            paths[d.name]['files'].append(f.name)
+    return paths
+
 class TooManyPlayers(Exception):
     pass
 
@@ -69,8 +78,8 @@ class Ship(object):
             else:
                 self.lives -= 1
                 self.hits.append((x, y))
-        if self.lives == 0:
-            raise ShipDead()
+            if self.lives == 0:
+                raise ShipDead()
         return ship_hit
 
     def points(self):
@@ -174,10 +183,15 @@ class BattleshipGame(object):
             enemy['hits'].append((x, y))
             for ship in enemy['ships']:
                 try:
-                    hit_result['hit'] = ship.hit(x, y)
+                    if ship.hit(x, y):
+                        hit_result['hit'] = True
+                        break
+                except ShipAlreadyHit:
+                    break
                 except ShipDead:
                     hit_result['hit'] = True
                     hit_result['kill'] = True
+                    break
             if not [s for s in enemy['ships'] if s.lives]:
                 me['winner'] = True
                 me['turn'] = False
@@ -262,6 +276,21 @@ class BattleshipRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def serve_static(self):
+        path = 'static/'
+        requested_path = self.url_parsed.path[len('/static/'):]
+        requested_path = requested_path.replace('..', '')
+        path += requested_path
+        with open(path, 'rb') as f:
+            fcontent = f.read()
+        mime = {
+            '.mp3': 'audio/mpeg',
+        }
+        self.respond_ok(
+            fcontent,
+            content_type=mime.get(splitext(path)[1]) or 'application/octet-stream'
+            )
+
     def do_GET(self):
 
         try:
@@ -272,8 +301,10 @@ class BattleshipRequestHandler(BaseHTTPRequestHandler):
                 index = script_path / 'index.html'
                 self.respond_ok(index.open('rb').read())
             elif self.url_parsed.path == '/start':
-                token = self.server.game.add_player()
-                self.respond_ok(json.dumps(token).encode())
+                start_info = {}
+                start_info['token'] = self.server.game.add_player()
+                start_info['sounds'] = sound_paths()
+                self.respond_ok(json.dumps(start_info).encode())
             elif self.url_parsed.path == '/gamestatus':
                 token = float(self.url_parsed.query)
                 status = self.server.game.get_status(token)

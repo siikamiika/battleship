@@ -241,9 +241,11 @@ function update_game_status(player, json) {
     if (json.winner) {
         window.clearInterval(window.updater_id);
         if (player == 'self') {
+            play_sound('win');
             alert('olet viineri');
         }
         else if (player == 'enemy') {
+            play_sound('lose');
             alert('olet luuseri');
         }
     }
@@ -267,16 +269,35 @@ function add_ship(coord, size, horizontal) {
     });
 }
 
+function play_sound(event) {
+    var sounds = window.sounds[event].files.map(function(file) {
+        return window.sounds[event].base + '/' + file;
+    });
+    new Audio(sounds[Math.floor(Math.random()*sounds.length)]).play();
+}
+
 function hit(x, y) {
     var postdata = JSON.stringify({'x': x, 'y': y});
-    xhr('POST', '/hit?' + window.token, postdata, function (asdf) {
+    xhr('POST', '/hit?' + window.token, postdata, function (hit_result) {
+        var hit_result = JSON.parse(hit_result);
+        if (hit_result.kill) {
+            play_sound('kill');
+        }
+        else if (hit_result.hit) {
+            play_sound('hit');
+        }
+        else {
+            play_sound('miss');
+        }
         update_game();
     });
 }
 
 window.addEventListener("load", function () {
-    xhr('GET', '/start', null, function (token_json) {
-        window.token = JSON.parse(token_json);
+    xhr('GET', '/start', null, function (start) {
+        var start = JSON.parse(start);
+        window.token = start.token;
+        window.sounds = start.sounds;
         generate_fleet_table('self.fleet');
         generate_fleet_table('enemy.fleet', true);
         window.updater_id = window.setInterval(function () {
