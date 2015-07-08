@@ -170,18 +170,21 @@ class BattleshipGame(object):
         elif (x, y) in enemy['hits']:
             raise AlreadyHit('{} already hit'.format((x, y)))
         else:
+            hit_result = dict(kill=False, hit=False)
             enemy['hits'].append((x, y))
             for ship in enemy['ships']:
                 try:
-                    ship.hit(x, y)
+                    hit_result['hit'] = ship.hit(x, y)
                 except ShipDead:
-                    pass
+                    hit_result['hit'] = True
+                    hit_result['kill'] = True
             if not [s for s in enemy['ships'] if s.lives]:
                 me['winner'] = True
                 me['turn'] = False
             else:
                 enemy['turn'] = True
                 me['turn'] = False
+            return hit_result
 
     def ready(self):
         for p in self.players:
@@ -294,8 +297,8 @@ class BattleshipRequestHandler(BaseHTTPRequestHandler):
                 self.respond_ok()
             elif self.url_parsed.path == '/hit':
                 token = float(self.url_parsed.query)
-                self.server.game.hit(token, **json.loads(self.POST_data.decode()))
-                self.respond_ok()
+                hr = self.server.game.hit(token, **json.loads(self.POST_data.decode()))
+                self.respond_ok(json.dumps(hr).encode())
         except Exception as e:
             traceback.print_exc()
             self.respond_notfound(str(e).encode())
