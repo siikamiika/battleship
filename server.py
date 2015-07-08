@@ -128,9 +128,11 @@ class BattleshipGame(object):
                     sq['cls'].append('hit')
                 for ship in player['ships']:
                     if ship._hit(x, y):
-                        if own or ship.lives == 0 or (x, y) in player['hits']:
+                        if own or (x, y) in player['hits']:
                             sq['txt'] = 'O'
                             sq['cls'].append('ship')
+                            if ship.lives == 0:
+                                sq['cls'].append('dead')
                             break
                 row.append(sq)
             output.append(row)
