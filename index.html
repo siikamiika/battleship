@@ -52,6 +52,9 @@
     .red {
         background-color: red;
     }
+    .alert {
+        font-size: 200%;
+    }
     </style>
 </head>
 <body>
@@ -127,11 +130,19 @@ function activate_positioning_button(button, x, y) {
             var len_x = x - window.starting_coord[0];
             var len_y = y - window.starting_coord[1];
             if (!len_x) {
-                add_ship(window.starting_coord, len_y + 1, false);
+                if (len_y < 0) {
+                    add_ship([x, y], -1 * len_y + 1, false);
+                } else {
+                    add_ship(window.starting_coord, len_y + 1, false);
+                }
                 show_message('');
             }
             else if (!len_y) {
-                add_ship(window.starting_coord, len_x + 1, true);
+                if (len_x < 0) {
+                    add_ship([x, y], -1 * len_x + 1, true);
+                } else {
+                    add_ship(window.starting_coord, len_x + 1, true);
+                }
                 show_message('');
             }
             else {
@@ -220,7 +231,10 @@ function update_game_status(player, json) {
         turn_el.className = 'hide';
     }
     else {
-        turn_el.className = '';
+        if (player == 'self')
+            turn_el.className = 'alert green';
+        else if (player == 'enemy')
+            turn_el.className = 'alert red';
     }
     ships_left_el.innerHTML = ships_left_as_html(json.ships_left);
     ships_el.innerHTML = ships_as_html(json.ships);
