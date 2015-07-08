@@ -279,6 +279,7 @@ class BattleshipRequestHandler(BaseHTTPRequestHandler):
     def serve_static(self):
         path = 'static/'
         requested_path = self.url_parsed.path[len('/static/'):]
+        requested_path = unquote(requested_path)
         requested_path = requested_path.replace('..', '')
         path += requested_path
         with open(path, 'rb') as f:
