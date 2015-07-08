@@ -6,9 +6,10 @@ from socketserver import ThreadingMixIn
 import sys
 from os.path import splitext, dirname, realpath, expanduser
 import json
-from urllib.parse import unquote, urlparse
+from urllib.parse import unquote, urlparse, quote
 import time
 import traceback
+import random
 
 script_path = Path(dirname(realpath(__file__)))
 
@@ -106,6 +107,7 @@ class BattleshipGame(object):
     def __init__(self, ships={5: 1, 4: 1, 3: 2, 2: 1, 1: 1}):
         self._ships_left = ships
         self.players = []
+        self.sounds = sound_paths()
 
     def add_player(self):
         token = time.time()
@@ -170,6 +172,14 @@ class BattleshipGame(object):
         else:
             return False
 
+    def _set_random_files(self):
+        self.sound = dict()
+        for k in self.sounds:
+            self.sound[k] = dict(
+                base=self.sounds[k]['base'],
+                file=random.choice(self.sounds[k]['files'])
+                )
+
     def hit(self, token, x=None, y=None):
         if not self.ready():
             raise PlayersNotReadyYet('Players aren\'t ready yet')
@@ -186,7 +196,8 @@ class BattleshipGame(object):
         elif (x, y) in enemy['hits']:
             raise AlreadyHit('{} already hit'.format((x, y)))
         else:
-            hit_result = dict(kill=False, hit=False)
+            self._set_random_files()
+            hit_result = dict(kill=False, hit=False, win=False)
             enemy['hits'].append((x, y))
             for ship in enemy['ships']:
                 try:
@@ -202,6 +213,7 @@ class BattleshipGame(object):
             if not [s for s in enemy['ships'] if s.lives]:
                 me['winner'] = True
                 me['turn'] = False
+                hit_result['win'] = True
             else:
                 enemy['turn'] = True
                 me['turn'] = False
@@ -311,12 +323,16 @@ class BattleshipRequestHandler(BaseHTTPRequestHandler):
             elif self.url_parsed.path == '/start':
                 start_info = {}
                 start_info['token'] = self.server.game.add_player()
-                start_info['sounds'] = sound_paths()
                 self.respond_ok(json.dumps(start_info).encode())
             elif self.url_parsed.path == '/gamestatus':
                 token = float(self.url_parsed.query)
                 status = self.server.game.get_status(token)
                 self.respond_ok(json.dumps(status).encode())
+            elif self.url_parsed.path.startswith('/sound/'):
+                event = self.url_parsed.path[len('/sound/'):]
+                sound = self.server.game.sound[event]
+                url = '/{}/{}'.format(sound['base'], quote(sound['file']))
+                self.redirect(url)
             else:
                 return self.respond_notfound()
         except Exception as e:

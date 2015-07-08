@@ -302,33 +302,19 @@ function add_ship(coord, size, horizontal) {
 }
 
 function play_sound(event) {
-    var queued_sounds = window.sounds_left[event];
-    var sound;
-    function extract_random (sounds) {
-        var index = Math.floor(Math.random()*sounds.length);
-        var path = sounds.files.splice(index, 1);
-        return sounds.base + '/' + path;
-    }
-    if (queued_sounds.files.length) {
-        sound = extract_random(queued_sounds);
-    } else {
-        window.sounds_left[event] = JSON.parse(JSON.stringify(window.sounds[event]));
-        sound = extract_random(window.sounds_left[event]);
-    }
-    new Audio(sound).play();
+    new Audio('/sound/' + event + '?' + new Date().getTime()).play();
 }
 
 function hit(x, y) {
     var postdata = JSON.stringify({'x': x, 'y': y});
     xhr('POST', '/hit?' + window.token, postdata, function (hit_result) {
         var hit_result = JSON.parse(hit_result);
-        if (hit_result.kill) {
+        if (hit_result.win) {}
+        else if (hit_result.kill) {
             play_sound('kill');
-        }
-        else if (hit_result.hit) {
+        } else if (hit_result.hit) {
             play_sound('hit');
-        }
-        else {
+        } else {
             play_sound('miss');
         }
         update_game();
@@ -339,8 +325,6 @@ window.addEventListener("load", function () {
     xhr('GET', '/start', null, function (start) {
         var start = JSON.parse(start);
         window.token = start.token;
-        window.sounds = start.sounds;
-        window.sounds_left = JSON.parse(JSON.stringify(window.sounds));
         generate_fleet_table('self.fleet');
         generate_fleet_table('enemy.fleet', true);
         window.updater_id = window.setInterval(function () {
