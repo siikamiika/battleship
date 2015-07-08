@@ -90,8 +90,13 @@ class Ship(object):
 
     def allowed(self, other):
         op = other.points()
+        forbidden = set()
+        for p in op:
+            for y in range(p[1] - 1, p[1] + 2):
+                for x in range(p[0] - 1, p[0] + 2):
+                    forbidden |= {(x, y)}
         for p in self.points():
-            if p in op:
+            if p in forbidden:
                 return False
         return True
 
